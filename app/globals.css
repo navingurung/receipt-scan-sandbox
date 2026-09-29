@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #164d86;
+  --color-brand-dark: #0f3a66;
+  --color-brand-light: #e8eff7;
+  --font-sans: system-ui, -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+}
+
+body {
+  background: #f5f7fa;
+  color: #1f2937;
+}
+
+@keyframes scan-line {
+  0%, 100% { top: 0%; }
+  50% { top: calc(100% - 2px); }
+}
+
+.animate-scan-line {
+  animation: scan-line 2.4s ease-in-out infinite;
+}
+
+.animate-scan-line-fast {
+  animation: scan-line 1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scan-line,
+  .animate-scan-line-fast {
+    animation-duration: 4s;
+  }
+}
