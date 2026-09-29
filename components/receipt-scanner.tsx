@@ -17,7 +17,9 @@ const MAX_OUTPUT_EDGE = 1600;
 const MIN_RECOMMENDED_HEIGHT = 1080;
 const ANALYSIS_WIDTH = 320;
 const ANALYSIS_INTERVAL_MS = 200;
-const HOLD_STILL_MS = 800;
+const HOLD_STILL_MS = 500;
+// 自動撮影されない場合に手動撮影を案内するまでの時間
+const MANUAL_HINT_DELAY_MS = 3000;
 const CONTROLS_HEIGHT_PX = 168; // 上部バー 56px + 下部バー 112px
 
 type ScannerPhase = "starting" | "live" | "error";
@@ -34,8 +36,8 @@ const CORNER_COLOR: Record<DetectionState, string> = {
 };
 
 const HINT: Record<DetectionState, string> = {
-  searching: "レシートを枠内に合わせてください",
-  detected: "そのまま動かさないでください",
+  searching: "レシート全体を枠に入れてください",
+  detected: "ピントを合わせています…",
   ready: "撮影します",
 };
 
@@ -84,6 +86,7 @@ export function ReceiptScanner({ onCapture, onClose }: ReceiptScannerProps) {
   const [detection, setDetection] = useState<DetectionState>("searching");
   const [progress, setProgress] = useState(0);
   const [metrics, setMetrics] = useState<FrameMetrics | null>(null);
+  const [showManualHint, setShowManualHint] = useState(false);
 
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -154,6 +157,7 @@ export function ReceiptScanner({ onCapture, onClose }: ReceiptScannerProps) {
     setPhase("starting");
     setDetection("searching");
     setProgress(0);
+    setShowManualHint(false);
     void startStream(nextDeviceId);
   };
 
@@ -235,6 +239,13 @@ export function ReceiptScanner({ onCapture, onClose }: ReceiptScannerProps) {
 
     return () => window.clearInterval(intervalId);
   }, [phase, capture]);
+
+  // 一定時間で自動撮影されなければ手動撮影を案内
+  useEffect(() => {
+    if (phase !== "live") return;
+    const timeoutId = window.setTimeout(() => setShowManualHint(true), MANUAL_HINT_DELAY_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [phase]);
 
   // 表示中：Esc で閉じる・背景スクロール禁止
   useEffect(() => {
@@ -339,8 +350,8 @@ export function ReceiptScanner({ onCapture, onClose }: ReceiptScannerProps) {
               ))}
 
               {phase === "live" && (
-                 <div className="animate-scan-line absolute inset-x-2 h-0.5 bg-emerald-400 shadow-[0_0_12px_2px_rgba(52,211,153,0.8)]" />
-               )}
+                <div className="animate-scan-line absolute inset-x-2 h-0.5 bg-emerald-400 shadow-[0_0_12px_2px_rgba(52,211,153,0.8)]" />
+              )}
 
               <div className="absolute inset-x-0 -bottom-3 h-1 rounded bg-white/20">
                 <div className="h-full rounded bg-emerald-400" style={{ width: `${progress * 100}%` }} />
@@ -348,7 +359,11 @@ export function ReceiptScanner({ onCapture, onClose }: ReceiptScannerProps) {
             </div>
 
             <p className="absolute inset-x-0 top-3 text-center text-sm font-medium" aria-live="polite">
-              {phase === "starting" ? "カメラを起動しています…" : HINT[detection]}
+              {phase === "starting"
+                ? "カメラを起動しています…"
+                : showManualHint && detection !== "ready"
+                  ? "下のボタンで撮影できます"
+                  : HINT[detection]}
             </p>
 
             {metrics && (
@@ -367,7 +382,9 @@ export function ReceiptScanner({ onCapture, onClose }: ReceiptScannerProps) {
           onClick={() => void capture()}
           disabled={phase !== "live"}
           aria-label="今すぐ撮影"
-          className="h-16 w-16 rounded-full border-4 border-white bg-white/20 transition hover:bg-white/40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:opacity-40"
+          className={`h-16 w-16 rounded-full border-4 border-white bg-white/20 transition hover:bg-white/40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:opacity-40 ${
+            showManualHint ? "animate-pulse ring-4 ring-emerald-400 ring-offset-4 ring-offset-black" : ""
+          }`}
         />
       </footer>
     </div>

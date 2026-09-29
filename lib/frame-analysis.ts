@@ -24,8 +24,8 @@ export type DetectionThresholds = {
 export const DETECTION_THRESHOLDS: DetectionThresholds = {
   minInsideBrightness: 110,
   minContrast: 25,
-  minSharpness: 6,
-  maxMotion: 6,
+  minSharpness: 20,
+  maxMotion: 30,
 };
 
 export function getFrameRect(width: number, height: number): Rect {
