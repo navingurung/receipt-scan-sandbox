@@ -8,8 +8,13 @@ import { ItemsStep } from "@/components/steps/items-step";
 import { ScanningStep } from "@/components/steps/scanning-step";
 import { StartStep } from "@/components/steps/start-step";
 import { SubmittedStep } from "@/components/steps/submitted-step";
-import { createDraft, toSubmissionPayload, type ReceiptDraft } from "@/lib/receipt-draft";
+import {
+  createDraft,
+  toSubmissionPayload,
+  type ReceiptDraft,
+} from "@/lib/receipt-draft";
 import { mapVeryfiDocument } from "@/lib/receipt-mapper";
+import type { SavedDraft } from "@/lib/draft-storage";
 
 type Step = "start" | "scanning" | "items" | "confirm" | "submitted";
 
@@ -23,10 +28,18 @@ const STEP_META: Record<Step, { title: string; index: number }> = {
   submitted: { title: "送信完了", index: 3 },
 };
 
+const DRAFT_STORAGE_KEY = "receipt-draft";
+
 function getErrorMessage(data: unknown, status: number): string {
-  if (data && typeof data === "object" && "error" in data && typeof data.error === "string") {
+  if (
+    data &&
+    typeof data === "object" &&
+    "error" in data &&
+    typeof data.error === "string"
+  ) {
     return `読み取りに失敗しました（${data.error}）`;
   }
+
   return `読み取りに失敗しました（${status}）`;
 }
 
@@ -42,16 +55,38 @@ export default function Home() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [draft, setDraft] = useState<ReceiptDraft | null>(null);
+  const [savedDraft, setSavedDraft] = useState<SavedDraft | null>(null);
   const [rawData, setRawData] = useState<unknown>(null);
   const [durationMs, setDurationMs] = useState(0);
   const [payload, setPayload] = useState<unknown>(null);
 
+  // 保存されている下書きを読み込む
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+
+      if (!stored) {
+        setSavedDraft(null);
+        return;
+      }
+
+      const parsed = JSON.parse(stored) as SavedDraft;
+      setSavedDraft(parsed);
+    } catch {
+      setSavedDraft(null);
+    }
+  }, []);
+
   // 前回のプレビュー URL を解放
   useEffect(() => {
     if (!imageUrl) return;
-    return () => URL.revokeObjectURL(imageUrl);
+
+    return () => {
+      URL.revokeObjectURL(imageUrl);
+    };
   }, [imageUrl]);
 
+  // ステップ変更時にページ上部へ戻る
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [step]);
@@ -67,46 +102,87 @@ export default function Home() {
     const startedAt = performance.now();
 
     try {
-      const response = await fetch("/api/receipt-scan", { method: "POST", body: formData });
+      const response = await fetch("/api/receipt-scan", {
+        method: "POST",
+        body: formData,
+      });
+
       const data: unknown = await response.json();
 
       if (!response.ok) {
         setScanError(getErrorMessage(data, response.status));
         return;
       }
+
       setDurationMs(Math.round(performance.now() - startedAt));
       setRawData(data);
-      setDraft(createDraft(mapVeryfiDocument(data)));
+
+      const newDraft = createDraft(mapVeryfiDocument(data));
+
+      setDraft(newDraft);
       setStep("items");
     } catch {
       setScanError("通信エラーが発生しました。もう一度お試しください。");
     }
   }, []);
 
-  const openScanner = useCallback(() => setIsScannerOpen(true), []);
-  const closeScanner = useCallback(() => setIsScannerOpen(false), []);
+  const openScanner = useCallback(() => {
+    setIsScannerOpen(true);
+  }, []);
 
-  const restart = () => {
+  const closeScanner = useCallback(() => {
+    setIsScannerOpen(false);
+  }, []);
+
+  const resumeDraft = useCallback(() => {
+    if (!savedDraft) return;
+
+    setDraft(savedDraft.draft);
+    setRawData(null);
+    setPayload(null);
+    setScanError(null);
+    setStep("items");
+  }, [savedDraft]);
+
+  const discardDraft = useCallback(() => {
+    try {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } finally {
+      setSavedDraft(null);
+    }
+  }, []);
+
+  const restart = useCallback(() => {
     setStep("start");
     setDraft(null);
     setRawData(null);
     setPayload(null);
     setScanError(null);
     setImageUrl(null);
-  };
+  }, []);
 
   const meta = STEP_META[step];
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col bg-slate-50 shadow-sm md:max-w-3xl">
-      <FlowHeader title={meta.title} step={meta.index} totalSteps={TOTAL_STEPS} />
-
-      {step === "start" && <StartStep onScan={openScanner} onUpload={processImage} />}
-
+      {" "}
+      <FlowHeader
+        title={meta.title}
+        step={meta.index}
+        totalSteps={TOTAL_STEPS}
+      />
+      {step === "start" && (
+        <StartStep
+          onScan={openScanner}
+          onUpload={processImage}
+          savedDraft={savedDraft}
+          onResumeDraft={resumeDraft}
+          onDiscardDraft={discardDraft}
+        />
+      )}
       {step === "scanning" && imageUrl && (
         <ScanningStep imageUrl={imageUrl} error={scanError} onRetry={restart} />
       )}
-
       {step === "items" && draft && (
         <ItemsStep
           draft={draft}
@@ -118,7 +194,6 @@ export default function Home() {
           onNext={() => setStep("confirm")}
         />
       )}
-
       {step === "confirm" && draft && (
         <ConfirmStep
           draft={draft}
@@ -129,10 +204,12 @@ export default function Home() {
           }}
         />
       )}
-
-      {step === "submitted" && <SubmittedStep payload={payload} onRestart={restart} />}
-
-      {isScannerOpen && <ReceiptScanner onCapture={processImage} onClose={closeScanner} />}
+      {step === "submitted" && (
+        <SubmittedStep payload={payload} onRestart={restart} />
+      )}
+      {isScannerOpen && (
+        <ReceiptScanner onCapture={processImage} onClose={closeScanner} />
+      )}
     </div>
   );
 }
