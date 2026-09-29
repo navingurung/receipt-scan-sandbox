@@ -12,7 +12,7 @@ type ItemEditorProps = {
 };
 
 const inputClass =
-  "mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
+  "mt-1 h-11 w-full rounded-md border border-slate-300 px-3 text-base text-slate-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
 
 export function ItemEditor({ item, taxType, onSave, onCancel }: ItemEditorProps) {
   const formId = useId();
@@ -47,7 +47,7 @@ export function ItemEditor({ item, taxType, onSave, onCancel }: ItemEditorProps)
   };
 
   return (
-    <div className="space-y-3 rounded-lg border-2 border-brand bg-white p-4">
+    <div className="space-y-3 rounded-lg border-2 border-brand bg-white p-4 md:col-span-2">
       <label className="block text-sm text-slate-700" htmlFor={`${formId}-name`}>
         商品名
         <input id={`${formId}-name`} value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
@@ -112,7 +112,7 @@ export function ItemEditor({ item, taxType, onSave, onCancel }: ItemEditorProps)
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          className="h-11 rounded-md border border-slate-300 px-5 text-sm text-slate-700 hover:bg-slate-50"
         >
           キャンセル
         </button>
@@ -120,7 +120,7 @@ export function ItemEditor({ item, taxType, onSave, onCancel }: ItemEditorProps)
           type="button"
           onClick={handleSave}
           disabled={!isValid}
-          className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-40"
+          className="h-11 rounded-md bg-brand px-5 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-40"
         >
           保存
         </button>

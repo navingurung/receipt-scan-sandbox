@@ -14,7 +14,7 @@ export function FlowFooter({
   isPrimaryDisabled = false,
 }: FlowFooterProps) {
   return (
-    <footer className="sticky bottom-0 grid grid-cols-2 gap-3 border-t border-slate-200 bg-white p-4">
+   <footer className="sticky bottom-0 grid grid-cols-2 gap-3 border-t border-slate-200 bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
       <button
         type="button"
         onClick={onSecondary}

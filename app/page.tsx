@@ -98,7 +98,7 @@ export default function Home() {
   const meta = STEP_META[step];
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-lg flex-col bg-slate-50 shadow-sm">
+    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col bg-slate-50 shadow-sm md:max-w-3xl">
       <FlowHeader title={meta.title} step={meta.index} totalSteps={TOTAL_STEPS} />
 
       {step === "start" && <StartStep onScan={openScanner} onUpload={processImage} />}

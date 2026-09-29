@@ -10,7 +10,7 @@ type FlowHeaderProps = {
 
 export function FlowHeader({ title, step, totalSteps, onBack }: FlowHeaderProps) {
   return (
-    <header className="sticky top-0 z-10 bg-brand px-4 pb-3 pt-4 text-white">
+   <header className="sticky top-0 z-10 bg-brand pb-3 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(1rem,env(safe-area-inset-top))] text-white">
       <div className="relative flex h-8 items-center justify-center">
         {onBack && (
           <button

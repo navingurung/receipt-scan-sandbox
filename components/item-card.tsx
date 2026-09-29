@@ -21,7 +21,7 @@ export function ItemCard({ item, taxType, onEdit, onDelete }: ItemCardProps) {
             type="button"
             onClick={onEdit}
             aria-label={`${item.name}を編集`}
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-brand"
+            className="flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-brand"
           >
             <PencilIcon size={16} />
           </button>
@@ -29,7 +29,7 @@ export function ItemCard({ item, taxType, onEdit, onDelete }: ItemCardProps) {
             type="button"
             onClick={onDelete}
             aria-label={`${item.name}を削除`}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-600 hover:bg-red-100 focus-visible:outline-2 focus-visible:outline-red-600"
+            className="flex h-11 w-11 items-center justify-center rounded-md bg-red-50 text-red-600 hover:bg-red-100 focus-visible:outline-2 focus-visible:outline-red-600"
           >
             <CloseIcon size={16} />
           </button>
