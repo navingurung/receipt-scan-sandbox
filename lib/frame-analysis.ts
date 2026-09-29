@@ -1,5 +1,4 @@
-// ガイド枠（縦長レシート）— 表示・解析・クロップで共有
-export const FRAME_HEIGHT_RATIO = 0.9;
+// ガイド枠（縦長レシート）の縦横比 — 表示・解析・クロップで共有
 export const FRAME_ASPECT = 9 / 20;
 
 export type Rect = { x: number; y: number; width: number; height: number };
@@ -28,14 +27,44 @@ export const DETECTION_THRESHOLDS: DetectionThresholds = {
   maxMotion: 30,
 };
 
-export function getFrameRect(width: number, height: number): Rect {
-  const frameHeight = Math.round(height * FRAME_HEIGHT_RATIO);
-  const frameWidth = Math.min(Math.round(frameHeight * FRAME_ASPECT), width);
+export type ObjectFit = "cover" | "contain";
+
+// 画面上のガイド枠（DOM 座標）を動画の実ピクセル座標に変換。object-fit の拡大・余白を考慮する
+export function mapElementRectToVideo(
+  frame: DOMRect,
+  video: DOMRect,
+  videoWidth: number,
+  videoHeight: number,
+  fit: ObjectFit,
+): Rect {
+  const scale =
+    fit === "cover"
+      ? Math.max(video.width / videoWidth, video.height / videoHeight)
+      : Math.min(video.width / videoWidth, video.height / videoHeight);
+  const offsetX = video.left + (video.width - videoWidth * scale) / 2;
+  const offsetY = video.top + (video.height - videoHeight * scale) / 2;
+
+  const x = Math.max(0, (frame.left - offsetX) / scale);
+  const y = Math.max(0, (frame.top - offsetY) / scale);
+  const right = Math.min(videoWidth, (frame.right - offsetX) / scale);
+  const bottom = Math.min(videoHeight, (frame.bottom - offsetY) / scale);
+
   return {
-    x: Math.round((width - frameWidth) / 2),
-    y: Math.round((height - frameHeight) / 2),
-    width: frameWidth,
-    height: frameHeight,
+    x: Math.round(x),
+    y: Math.round(y),
+    width: Math.max(1, Math.round(right - x)),
+    height: Math.max(1, Math.round(bottom - y)),
+  };
+}
+
+export function scaleRect(rect: Rect, factor: number, maxWidth: number, maxHeight: number): Rect {
+  const x = Math.min(maxWidth - 3, Math.max(0, Math.round(rect.x * factor)));
+  const y = Math.min(maxHeight - 3, Math.max(0, Math.round(rect.y * factor)));
+  return {
+    x,
+    y,
+    width: Math.max(3, Math.min(maxWidth - x, Math.round(rect.width * factor))),
+    height: Math.max(3, Math.min(maxHeight - y, Math.round(rect.height * factor))),
   };
 }
 
